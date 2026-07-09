@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAS 24 — The Related Party Wheel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --paper:#F7F2E7;
+    --paper-deep:#EFE7D5;
+    --ink:#1B2A45;
+    --ink-soft:#4A5670;
+    --rule:#D8CDB2;
+    --gold:#B8892C;
+    --gold-deep:#8E6A1E;
+
+    --c-9a:#6B4E9E;      /* 9(a)(i)-(iii) persons */
+    --c-9b1:#23272E;     /* 9(b)(i) group */
+    --c-9b2:#C97B3D;     /* 9(b)(ii) associate/JV */
+    --c-9b3:#A6403A;     /* 9(b)(iii) co-venturers */
+    --c-9b4:#3F6B4A;     /* 9(b)(iv) cross JV/associate */
+    --c-9b5:#7C9A5C;     /* 9(b)(v) PEB plan */
+    --c-9b6:#C9A227;     /* 9(b)(vi) controlled by 9(a) person */
+    --c-9b7:#3E8FA6;     /* 9(b)(vii) influence/KMP over entity */
+    --c-9b8:#8C5C7D;     /* 9(b)(viii) KMP services */
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--gold); color:var(--paper); }
+
+  .texture{
+    position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(184,137,44,0.05), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(107,78,158,0.05), transparent 40%);
+  }
+
+  header.hero{
+    position:relative; z-index:1;
+    padding:22px 24px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:32px;
+    flex-wrap:wrap;
+    border-bottom:1px solid var(--rule);
+  }
+  .hero-left{ text-align:left; }
+  .hero-right{ text-align:right; max-width:460px; }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--gold-deep); font-weight:600;
+  }
+  h1{
+    font-family:'Source Serif 4', serif;
+    font-weight:700;
+    font-size:clamp(24px,3.2vw,34px);
+    margin:4px 0 0;
+    letter-spacing:-.01em;
+    line-height:1.1;
+  }
+  h1 em{ font-style:italic; color:var(--gold-deep); font-weight:600;}
+  .subtitle{
+    font-size:13.5px; color:var(--ink-soft); margin:0;
+    font-family:'Source Serif 4', serif; font-style:italic;
+    line-height:1.4;
+  }
+  .std-ref{
+    margin-top:6px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    color:var(--ink-soft); letter-spacing:.04em;
+  }
+
+  main{ position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 24px 100px; }
+
+  /* ===== WHEEL + DETAIL LAYOUT ===== */
+  .wheel-section{
+    display:grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap:32px;
+    align-items:start;
+    padding:4px 0 20px;
+  }
+  .wheel-wrap{
+    position:relative;
+    width:100%;
+    max-width:600px;
+    margin:0 auto;
+  }
+  svg#wheel{ width:100%; height:auto; display:block; }
+
+  .hub-label{
+    font-family:'Source Serif 4', serif; font-weight:700; font-size:20px; fill:var(--paper);
+  }
+  .hub-sub{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; fill:var(--paper); opacity:.7;
+  }
+
+  .spoke-line{
+    fill:none; stroke-width:2.5; opacity:.55;
+    transition:opacity .2s ease, stroke-width .2s ease;
+  }
+  .node-group{ cursor:pointer; }
+  .node-group:hover .spoke-line, .node-group.active .spoke-line{ opacity:1; stroke-width:3.5;}
+  .node-circle{
+    stroke-width:2; transition:all .18s ease;
+  }
+  .node-group:hover .node-circle, .node-group.active .node-circle{
+    filter:drop-shadow(0 3px 8px rgba(27,42,69,.25));
+  }
+  .node-tag{
+    font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:11.5px;
+  }
+  .node-label{
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:12.5px; fill:var(--ink);
+  }
+
+  /* ===== DETAIL PANEL ===== */
+  .detail-panel{
+    background:#fff;
+    border:1px solid var(--rule);
+    border-radius:4px;
+    box-shadow:0 12px 32px -12px rgba(27,42,69,.18);
+    padding:0;
+    overflow:hidden;
+    position:sticky;
+    top:24px;
+    max-height:calc(100vh - 48px);
+    overflow-y:auto;
+  }
+  .detail-empty{
+    padding:52px 32px; text-align:center; color:var(--ink-soft);
+    font-family:'Source Serif 4', serif; font-style:italic; font-size:16px;
+  }
+  .detail-head{
+    display:flex; align-items:center; gap:14px;
+    padding:22px 28px; border-bottom:1px solid var(--rule);
+  }
+  .detail-swatch{ width:14px; height:44px; border-radius:2px; flex:none; }
+  .detail-para{
+    font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12px;
+    letter-spacing:.05em; color:var(--ink-soft); text-transform:uppercase;
+  }
+  .detail-title{
+    font-family:'Source Serif 4', serif; font-weight:700; font-size:23px; margin-top:2px;
+  }
+  .detail-body{ padding:22px 28px 28px; }
+  .detail-row{ display:grid; grid-template-columns: 140px 1fr; gap:16px; padding:14px 0; border-top:1px dashed var(--rule); }
+  .detail-row:first-child{ border-top:none; padding-top:0; }
+  .detail-row-label{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--gold-deep); font-weight:600; padding-top:2px;
+  }
+  .detail-row-text{ font-size:14.5px; line-height:1.65; color:var(--ink); }
+  .detail-row-text.example{ color:var(--ink-soft); }
+  .detail-row-text b{ color:var(--ink); }
+
+  /* ===== BUILDER SECTION ===== */
+  .builder-section{ padding:48px 0 20px; border-top:1px solid var(--rule); margin-top:36px; }
+  .section-head{ text-align:center; margin-bottom:6px; }
+  .section-eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gold-deep); font-weight:600;
+  }
+  .section-title{ font-family:'Source Serif 4', serif; font-weight:700; font-size:26px; margin:6px 0 6px;}
+  .section-desc{ text-align:center; color:var(--ink-soft); max-width:600px; margin:0 auto 28px; font-size:14px; }
+
+  .builder-grid{ display:grid; grid-template-columns:360px 1fr; gap:24px; align-items:start; }
+  @media (max-width:900px){ .builder-grid{ grid-template-columns:1fr; } }
+
+  .builder-panel{
+    background:#fff; border:1px solid var(--rule); border-radius:4px; padding:20px 22px; margin-bottom:16px;
+  }
+  .builder-panel h4{
+    font-family:'Source Serif 4',serif; font-size:15px; margin:0 0 12px; color:var(--ink);
+    border-bottom:1px dashed var(--rule); padding-bottom:8px; font-weight:700;
+  }
+  .form-row{ display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .form-row input[type=text], .form-row input[type=number], .form-row select{
+    flex:1; min-width:110px; padding:8px 10px; border:1px solid var(--rule); border-radius:3px;
+    font-family:'IBM Plex Sans',sans-serif; font-size:13px; background:var(--paper); color:var(--ink);
+  }
+  .form-row select{ background:#fff; }
+  .radio-row{ display:flex; gap:14px; margin-bottom:10px; font-size:12.5px; color:var(--ink-soft); }
+  .radio-row label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .field-hint{ font-size:11px; line-height:1.6; color:var(--ink-soft); background:var(--paper); border:1px dashed var(--rule); border-radius:3px; padding:9px 11px; margin:2px 0 10px; }
+  .field-hint b{ color:var(--ink); }
+
+  .btn{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; letter-spacing:.03em;
+    text-transform:uppercase; padding:9px 16px; border-radius:3px; border:1px solid var(--gold-deep);
+    background:var(--gold-deep); color:#fff; cursor:pointer; transition:opacity .15s;
+  }
+  .btn:hover{ opacity:.88; }
+  .btn.secondary{ background:#fff; color:var(--ink); border-color:var(--rule); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .mini-table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+  .mini-table th{
+    text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--ink-soft); border-bottom:1px solid var(--rule); padding:6px 4px;
+  }
+  .mini-table td{ padding:6px 4px; border-bottom:1px solid var(--paper-deep); vertical-align:top; }
+  .mini-table .del-btn{ border:none; background:none; color:#A6403A; cursor:pointer; font-size:14px; line-height:1; }
+  .mini-table .move-btn{ border:none; background:none; color:var(--ink-soft); cursor:pointer; font-size:11px; line-height:1; padding:2px 4px; }
+  .mini-table .move-btn:hover{ color:var(--gold-deep); }
+  .mini-table .move-btn:disabled{ opacity:.25; cursor:default; }
+  .mini-table .move-btn:disabled:hover{ color:var(--ink-soft); }
+  .mini-table td.row-actions{ white-space:nowrap; text-align:right; }
+  .empty-note{ color:var(--ink-soft); font-size:12px; font-style:italic; padding:8px 0; }
+
+  .chart-wrap{ background:#fff; border:1px solid var(--rule); border-radius:4px; padding:16px; min-height:340px; overflow:scroll; max-height:680px; scrollbar-width:auto; scrollbar-color:var(--gold) var(--paper-deep); }
+  .chart-wrap::-webkit-scrollbar{ width:14px; height:14px; }
+  .chart-wrap::-webkit-scrollbar-track{ background:var(--paper-deep); border-radius:8px; }
+  .chart-wrap::-webkit-scrollbar-thumb{ background:var(--gold); border-radius:8px; border:3px solid var(--paper-deep); }
+  .chart-wrap::-webkit-scrollbar-thumb:hover{ background:var(--gold-deep); }
+  .chart-wrap::-webkit-scrollbar-corner{ background:var(--paper-deep); }
+  svg#groupChart{ display:block; }
+
+  .re-picker{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .re-picker select{ flex:1; min-width:180px; padding:9px 10px; border:1px solid var(--gold); border-radius:3px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; }
+
+  .results-panel{ margin-top:22px; background:#fff; border:1px solid var(--rule); border-radius:4px; overflow:hidden; }
+  .results-head{ padding:16px 22px; border-bottom:1px solid var(--rule); font-family:'Source Serif 4',serif; font-weight:700; font-size:17px; }
+  .result-row{ display:grid; grid-template-columns:100px 190px 1fr; gap:14px; padding:12px 22px; border-bottom:1px solid var(--paper-deep); align-items:start; font-size:13px; }
+  .result-row .rp-tag{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:11.5px; }
+  .result-row .rp-name{ font-weight:600; }
+  .result-row .rp-reason{ color:var(--ink-soft); }
+  .results-empty{ padding:24px; text-align:center; color:var(--ink-soft); font-style:italic; font-family:'Source Serif 4',serif; }
+
+  .builder-actions{ display:flex; justify-content:center; gap:12px; margin-top:22px; flex-wrap:wrap; }
+  .disclaimer-note{ max-width:700px; margin:14px auto 0; text-align:center; font-size:11.5px; color:var(--ink-soft); }
+
+  @media (max-width:640px){
+    .result-row{ grid-template-columns:1fr; gap:2px; }
+  }
+
+  footer{
+    text-align:center; padding:40px 24px 60px; color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.03em;
+    border-top:1px solid var(--rule); margin-top:40px;
+  }
+
+  @media (max-width:640px){
+    .detail-row{ grid-template-columns:1fr; gap:4px; }
+    header.hero{ padding:20px 16px 16px; }
+    .hero-right{ text-align:left; }
+  }
+
+  @media (max-width:900px){
+    .wheel-section{ grid-template-columns: 1fr; }
+    .detail-panel{ position:static; max-height:none; }
+  }
+
+  @media print{
+    body{ }
+  }
+
+  .lead-modal{
+    position:fixed; inset:0; background:rgba(27,42,69,.42);
+    display:none; align-items:center; justify-content:center;
+    z-index:9999; padding:18px;
+  }
+  .lead-modal.show{ display:flex; }
+  .lead-box{
+    width:100%; max-width:460px; background:#fff; border-radius:4px;
+    border:1px solid var(--rule); box-shadow:0 18px 60px rgba(27,42,69,.24);
+    padding:24px;
+  }
+  .lead-box h2{ margin:0 0 8px; font-family:'Source Serif 4',serif; color:var(--ink); }
+  .lead-box p{ margin:0 0 16px; color:var(--ink-soft); font-size:13px; }
+  .lead-box .form-row{ margin-bottom:12px; display:block; }
+  .lead-box input{
+    width:100%; padding:9px 10px; border:1px solid var(--rule); border-radius:3px;
+    font-family:'IBM Plex Sans',sans-serif; font-size:13px; background:var(--paper); color:var(--ink);
+  }
+  .lead-box label{
+    display:block; margin-bottom:5px; font-size:12px; font-weight:600; color:var(--ink-soft);
+  }
+  .lead-error{ color:#A6403A; font-size:12px; display:none; margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="texture"></div>
+
+<header class="hero">
+  <div class="hero-left">
+    <div class="eyebrow">IAS 24 · Related Party Disclosures</div>
+    <h1>The Related Party <em>Wheel</em></h1>
+  </div>
+  <div class="hero-right">
+    <p class="subtitle">Every path a counterparty can take to become "related" to your reporting entity — traced from paragraph 9, in one map.</p>
+    <div class="std-ref">Paragraph 9(a)(i)–(iii) · Persons — and 9(b)(i)–(viii) · Entities</div>
+  </div>
+</header>
+
+<main>
+
+  <section class="wheel-section">
+    <div class="wheel-wrap">
+      <svg id="wheel" viewBox="0 0 840 840"></svg>
+    </div>
+
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-empty">Click any node on the wheel to see how that relationship is defined, and a worked example.</div>
+    </div>
+  </section>
+
+  <section class="builder-section">
+    <div class="section-head">
+      <div class="section-eyebrow">Practical Application</div>
+      <div class="section-title">Build a Group & Test Every Relationship</div>
+    </div>
+    <p class="section-desc">Add the people and entities in your structure, connect them the way they actually relate — ownership, control, KMP, family, benefit plans — pick the reporting entity, and get every related party flagged with its IAS 24 paragraph.</p>
+
+    <div class="builder-grid">
+      <div class="builder-controls">
+        <div class="builder-panel">
+          <h4>1 · Add people & entities</h4>
+          <div class="radio-row">
+            <label><input type="radio" name="nodeKind" value="entity" checked> Entity</label>
+            <label><input type="radio" name="nodeKind" value="person"> Person</label>
+          </div>
+          <div class="form-row">
+            <input type="text" id="nodeNameInput" placeholder="e.g. XYZ Holding Ltd, or Mr. A">
+            <button class="btn" id="addNodeBtn">Add</button>
+          </div>
+          <p class="field-hint">Try to keep names short — under about <b>18 characters</b> where possible (e.g. "XYZ Holding" rather than the full legal name). Shorter names keep boxes compact and the chart easier to read; longer ones will wrap or hyphenate across a couple of lines.</p>
+          <table class="mini-table" id="nodeTable"><thead><tr><th>Name</th><th>Type</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <div class="builder-panel">
+          <h4>2 · Connect them</h4>
+          <div class="form-row">
+            <select id="edgeFrom"></select>
+          </div>
+          <div class="form-row">
+            <select id="edgeType"></select>
+          </div>
+          <div class="form-row">
+            <select id="edgeTo"></select>
+            <input type="number" id="edgePct" placeholder="% (optional)" min="0" max="100">
+          </div>
+          <div class="form-row">
+            <button class="btn" id="addEdgeBtn" style="width:100%">Add Relationship</button>
+          </div>
+          <p class="field-hint">Relatedness is decided by the relationship type on each link, not the % alone. Use <b>Shareholder</b> for a plain equity stake — the test then applies these working assumptions: <b>50/50</b> between two holders → joint control · <b>&gt;50%</b> → control · <b>20–50%</b> → significant influence · <b>&lt;20%</b> → informational only, no automatic relation. If you already know the actual basis (e.g. a shareholders' agreement), pick Controls / Jointly Controls / Has Significant Influence directly instead.</p>
+          <table class="mini-table" id="edgeTable"><thead><tr><th>Relationship</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <div class="builder-panel">
+          <h4>3 · Pick the reporting entity & test</h4>
+          <div class="re-picker">
+            <select id="reSelect"><option value="">Select entity…</option></select>
+            <button class="btn" id="analyzeBtn">Analyse</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <svg id="groupChart" viewBox="0 0 900 620"></svg>
+      </div>
+    </div>
+
+    <div class="results-panel" id="resultsPanel">
+      <div class="results-head">Related Party Test Results</div>
+      <div class="results-empty">Add your structure, choose the reporting entity, and click Analyse.</div>
+    </div>
+
+    <div class="builder-actions">
+      <button class="btn secondary" id="downloadPdfBtn">Download PDF (chart + results)</button>
+      <button class="btn secondary" id="resetBuilderBtn">Reset Structure</button>
+    </div>
+    <p class="disclaimer-note">This test is a practical aid based on the relationships you input — it does not replace professional judgement on control, significant influence, or substance-over-form assessments required by IAS 24.</p>
+  </section>
+
+</main>
+
+<div class="lead-modal" id="leadModal">
+  <div class="lead-box">
+    <h2>User Details Required</h2>
+    <p>Please enter your details to continue. Your details may be recorded by this tool provider. Other data entered in the tool is not transmitted.</p>
+
+    <div class="lead-error" id="leadError">Please complete name, company name and a valid email address.</div>
+
+    <div class="form-row">
+      <label for="leadName">Name</label>
+      <input type="text" id="leadName" placeholder="Your name">
+    </div>
+    <div class="form-row">
+      <label for="leadCompany">Company name</label>
+      <input type="text" id="leadCompany" placeholder="Company name">
+    </div>
+    <div class="form-row">
+      <label for="leadEmail">Email</label>
+      <input type="text" id="leadEmail" placeholder="name@company.com">
+    </div>
+
+    <button class="btn" id="leadSubmitBtn" style="width:100%; justify-content:center;">Continue to tool</button>
+  </div>
+</div>
+
+<footer>Paraphrased from IAS 24 (2026), IASB · verify against the current standard and any local FRS adoption before relying on a conclusion.</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+/* ---------------- Lead capture (Google Sheets) ---------------- */
+const LEAD_CAPTURE_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyEfpaq6MPdKVBpSlbHXDHK7TwgdSODyzGi5g0Y7LCcVSzhZqMOZ8kZq-Sv9e2_kmUW/exec';
+const LEAD_STORAGE_KEY = 'nkr_ias24_related_party_tool_lead_v1';
+
+function getSavedLead(){
+  try { return JSON.parse(localStorage.getItem(LEAD_STORAGE_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+
+function saveLead(lead){
+  localStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(lead));
+}
+
+function validEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function submitLeadCapture(payload){
+  if(!LEAD_CAPTURE_WEBHOOK_URL || LEAD_CAPTURE_WEBHOOK_URL.indexOf('PASTE_') === 0) return;
+  try{
+    fetch(LEAD_CAPTURE_WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    }).catch(function(){});
+  } catch(e){}
+}
+
+function requireLeadCapture(onDone){
+  const existing = getSavedLead();
+  if(existing && existing.email){
+    onDone(existing);
+    return;
+  }
+
+  const modal = document.getElementById('leadModal');
+  const err = document.getElementById('leadError');
+  modal.classList.add('show');
+
+  document.getElementById('leadSubmitBtn').onclick = function(){
+    const lead = {
+      tool: 'IAS24 Related Party Tool',
+      name: document.getElementById('leadName').value.trim(),
+      email: document.getElementById('leadEmail').value.trim(),
+      company: document.getElementById('leadCompany').value.trim(),
+      toolVersion: 'IAS24-RP VF with Test',
+      pageUrl: (typeof location !== 'undefined' ? location.href : ''),
+      timestamp: new Date().toISOString()
+    };
+
+    if(!lead.name || !lead.company || !validEmail(lead.email)){
+      err.style.display = 'block';
+      return;
+    }
+
+    saveLead(lead);
+    submitLeadCapture(lead);
+    modal.classList.remove('show');
+    onDone(lead);
+  };
+}
+
+const CATS = [
+  {
+    id:'a1',
+    tag:'9(a)(i)',
+    group:'person',
+    color:'var(--c-9a)',
+    nodeLabel:'Control / Joint Control',
+    title:'Control or joint control by a person',
+    short:'A person who controls, or jointly controls, the reporting entity.',
+    definition:'A person (or their close family) is related to the reporting entity if that individual controls it outright, or shares control of it jointly with others under a contractual arrangement.',
+    example:'A founder-shareholder holding the controlling stake in an LLC, or two individuals who jointly steer a business through a shareholders\u2019 agreement, are both related parties under this test.',
+    marker:'Person → controls/jointly controls → Reporting Entity'
+  },
+  {
+    id:'a2',
+    tag:'9(a)(ii)',
+    group:'person',
+    color:'var(--c-9a)',
+    nodeLabel:'Significant Influence',
+    title:'Significant influence by a person',
+    short:'A person able to participate in policy decisions, without full control.',
+    definition:'Related if the individual has significant influence over the reporting entity — the power to take part in financial or operating decisions, falling short of control or joint control.',
+    example:'A minority shareholder holding roughly 20–50% of voting rights, or someone with a standing board seat and real input into strategy, typically meets this test.',
+    marker:'Person → significant influence → Reporting Entity'
+  },
+  {
+    id:'a3',
+    tag:'9(a)(iii)',
+    group:'person',
+    color:'var(--c-9a)',
+    nodeLabel:'Key Mgmt Personnel',
+    title:'Key management personnel (KMP)',
+    short:'Anyone with authority and responsibility for directing the entity.',
+    definition:'Related if the person is part of key management of the reporting entity, or of its parent — someone with authority and responsibility for planning, directing and controlling its activities.',
+    example:'Directors, the CEO, CFO, and other senior executives with real decision-making authority all fall inside this test — for the entity itself and for its parent.',
+    marker:'Person → KMP of entity or its parent → Reporting Entity'
+  },
+  {
+    id:'family',
+    tag:'9(a)',
+    group:'person',
+    color:'var(--c-9a)',
+    nodeLabel:'Close Family',
+    title:'Close family members of a 9(a) person',
+    short:'Family who may influence, or be influenced by, that person.',
+    definition:'Close family extends every 9(a) test to the person\u2019s family circle — typically a spouse or domestic partner, children, other dependants, and dependants of the spouse or partner — where they could be expected to influence, or be influenced by, that person in dealings with the entity.',
+    example:'The adult child of a controlling shareholder who transacts with the group, or the spouse of the CFO who sits on a supplier\u2019s board, both bring that counterparty into scope.',
+    marker:'Close family of 9(a) person → Reporting Entity'
+  },
+  {
+    id:'b1',
+    tag:'9(b)(i)',
+    group:'entity',
+    color:'var(--c-9b1)',
+    nodeLabel:'Same Group',
+    title:'Same group — parent, subsidiary, fellow subsidiary',
+    short:'Both entities sit inside the same corporate group.',
+    definition:'Two entities are related simply by both being members of the same group — a parent and its subsidiaries, or two subsidiaries under a common parent (fellow subsidiaries).',
+    example:'A UAE mainland trading subsidiary and its DIFC-based sister entity, both held under the same holding company, are related to one another and to the parent.',
+    marker:'Parent ↔ Subsidiary ↔ Fellow Subsidiary'
+  },
+  {
+    id:'b2',
+    tag:'9(b)(ii)',
+    group:'entity',
+    color:'var(--c-9b2)',
+    nodeLabel:'Associate / JV',
+    title:'Associate or joint venture',
+    short:'One entity is an associate or JV of the other (or of its group).',
+    definition:'Related if one entity is an associate or joint venture of the other entity, or of any member of a group that the other entity belongs to.',
+    example:'A 30%-owned associate of the reporting entity\u2019s parent is a related party to the reporting entity itself, even without a direct shareholding between them.',
+    marker:'Entity ↔ Associate / Joint Venture'
+  },
+  {
+    id:'b3',
+    tag:'9(b)(iii)',
+    group:'entity',
+    color:'var(--c-9b3)',
+    nodeLabel:'Co-Venturers',
+    title:'Co-venturers in the same joint venture',
+    short:'Both entities are joint ventures of the same third party.',
+    definition:'Two entities are related where each of them is a joint venture of the same third party — they sit as "siblings" under a shared venturer, without necessarily owning each other.',
+    example:'Two separate JV companies, each 50%-owned by the same parent group alongside different local partners, are related to one another.',
+    marker:'Third Party → JV A  and  JV B  (siblings)'
+  },
+  {
+    id:'b4',
+    tag:'9(b)(iv)',
+    group:'entity',
+    color:'var(--c-9b4)',
+    nodeLabel:'Cross JV & Associate',
+    title:'One JV, one associate, of the same third entity',
+    short:'A joint venture and an associate of the same investor.',
+    definition:'Related if one entity is a joint venture of a third entity, and the other entity is an associate of that same third entity.',
+    example:'A group\u2019s joint-venture logistics company and its separately held 25% associate (a technology supplier) are related, because both trace back to the same investor.',
+    marker:'Third Entity → JV  and  → Associate'
+  },
+  {
+    id:'b5',
+    tag:'9(b)(v)',
+    group:'entity',
+    color:'var(--c-9b5)',
+    nodeLabel:'PEB Plan',
+    title:'Post-employment benefit plan',
+    short:'A benefit plan for employees of the entity or a related entity.',
+    definition:'An entity is related if it is a post-employment benefit plan for the benefit of employees of either the reporting entity or an entity related to it. If the reporting entity is itself such a plan, its sponsoring employers are related parties too.',
+    example:'A defined-benefit or end-of-service gratuity plan set up for the group\u2019s own employees is a related party of the sponsoring employer.',
+    marker:'Reporting Entity → sponsors → PEB Plan'
+  },
+  {
+    id:'b6',
+    tag:'9(b)(vi)',
+    group:'entity',
+    color:'var(--c-9b6)',
+    nodeLabel:'Controlled by Person',
+    title:'Entity controlled by a 9(a) person',
+    short:'An entity controlled or jointly controlled by a person from 9(a).',
+    definition:'An entity is related if it is controlled or jointly controlled by a person who is themselves a related party under paragraph 9(a).',
+    example:'A separate trading company wholly owned by the same controlling shareholder who controls the reporting entity is related, even with no direct shareholding link.',
+    marker:'9(a) Person → controls → Other Entity'
+  },
+  {
+    id:'b7',
+    tag:'9(b)(vii)',
+    group:'entity',
+    color:'var(--c-9b7)',
+    nodeLabel:'Influence / KMP',
+    title:'Significant influence or KMP by a controlling person',
+    short:'A 9(a)(i) controller has influence or KMP status in the entity.',
+    definition:'An entity is related if a person who controls or jointly controls the reporting entity under 9(a)(i) also has significant influence over that entity, or is key management personnel of it (or of its parent).',
+    example:'The controlling shareholder of the reporting entity also sits as a director (KMP) of a separate supplier company — that supplier becomes a related party.',
+    marker:'9(a)(i) Person → influence / KMP → Other Entity'
+  },
+  {
+    id:'b8',
+    tag:'9(b)(viii)',
+    group:'entity',
+    color:'var(--c-9b8)',
+    nodeLabel:'KMP Services',
+    title:'Provider of key management personnel services',
+    short:'The entity, or its group, supplies KMP services to the entity.',
+    definition:'An entity is related if it, or any member of a group it belongs to, provides key management personnel services to the reporting entity or to its parent — for example under a management or secondment contract.',
+    example:'An outsourced management company that supplies the reporting entity\u2019s CEO and CFO under a services agreement is a related party, added by the 2009 IAS 24 revision.',
+    marker:'Service Entity → supplies KMP → Reporting Entity'
+  },
+];
+
+// ---------- WHEEL RENDER ----------
+const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById('wheel');
+const CX = 420, CY = 420, R = 300, HUBR = 84;
+
+function resolveColor(v){
+  const tmp = document.createElement('div');
+  tmp.style.color = v; document.body.appendChild(tmp);
+  const c = getComputedStyle(tmp).color; document.body.removeChild(tmp);
+  return c;
+}
+
+function el(name, attrs){
+  const e = document.createElementNS(svgNS, name);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// hub
+const hub = el('circle', {cx:CX, cy:CY, r:HUBR, fill:'#1B2A45', stroke:'#B8892C', 'stroke-width':2});
+svg.appendChild(hub);
+const hubT1 = el('text', {x:CX, y:CY-4, 'text-anchor':'middle', class:'hub-label'});
+hubT1.textContent = 'Reporting';
+svg.appendChild(hubT1);
+const hubT2 = el('text', {x:CX, y:CY+16, 'text-anchor':'middle', class:'hub-label'});
+hubT2.textContent = 'Entity';
+svg.appendChild(hubT2);
+const hubT3 = el('text', {x:CX, y:CY+34, 'text-anchor':'middle', class:'hub-sub'});
+hubT3.textContent = 'IAS 24.9';
+svg.appendChild(hubT3);
+
+const n = CATS.length;
+CATS.forEach((cat, i)=>{
+  const angle = (Math.PI * 2 * i / n) - Math.PI/2;
+  const nx = CX + Math.cos(angle) * R;
+  const ny = CY + Math.sin(angle) * R;
+  cat._pos = {x:nx, y:ny, angle};
+
+  const g = el('g', {class:'node-group', 'data-id':cat.id});
+
+  // spoke line from hub edge to node edge
+  const hx = CX + Math.cos(angle) * HUBR;
+  const hy = CY + Math.sin(angle) * HUBR;
+  const line = el('line', {
+    x1:hx, y1:hy, x2:nx, y2:ny,
+    class:'spoke-line', stroke: resolveColor(cat.color)
+  });
+  g.appendChild(line);
+
+  const NR = 51;
+  const circle = el('circle', {cx:nx, cy:ny, r:NR, class:'node-circle', fill:'#fff', stroke: resolveColor(cat.color)});
+  g.appendChild(circle);
+
+  const tag = el('text', {x:nx, y:ny-8, 'text-anchor':'middle', class:'node-tag', fill: resolveColor(cat.color)});
+  tag.textContent = cat.tag;
+  g.appendChild(tag);
+
+  // wrap the short node label into up to 2 lines
+  const words = cat.nodeLabel.split(' ');
+  let lines = [''];
+  words.forEach(w=>{
+    const test = (lines[lines.length-1] + ' ' + w).trim();
+    if(test.length > 15 && lines[lines.length-1] !== ''){
+      lines.push(w);
+    } else {
+      lines[lines.length-1] = test;
+    }
+  });
+  lines = lines.slice(0,2);
+  lines.forEach((ln, li)=>{
+    const t = el('text', {x:nx, y: ny + 8 + li*13, 'text-anchor':'middle', class:'node-label'});
+    t.textContent = ln;
+    g.appendChild(t);
+  });
+
+  g.addEventListener('click', ()=> selectCategory(cat.id));
+  svg.appendChild(g);
+});
+
+// ---------- DETAIL PANEL ----------
+const panel = document.getElementById('detailPanel');
+let activeId = null;
+
+function selectCategory(id){
+  activeId = id;
+  const cat = CATS.find(c=>c.id===id);
+  document.querySelectorAll('.node-group').forEach(g=>{
+    g.classList.toggle('active', g.getAttribute('data-id')===id);
+  });
+  panel.innerHTML = `
+    <div class="detail-head">
+      <div class="detail-swatch" style="background:${resolveColor(cat.color)}"></div>
+      <div>
+        <div class="detail-para">${cat.tag}</div>
+        <div class="detail-title">${cat.title}</div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-row">
+        <div class="detail-row-label">In short</div>
+        <div class="detail-row-text"><b>${cat.short}</b></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-row-label">The test</div>
+        <div class="detail-row-text">${cat.definition}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-row-label">In practice</div>
+        <div class="detail-row-text example">${cat.example}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-row-label">Relationship</div>
+        <div class="detail-row-text" style="font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:${resolveColor(cat.color)};">${cat.marker}</div>
+      </div>
+    </div>
+  `;
+}
+
+// initial selection
+selectCategory('a1');
+
+// ================= GROUP STRUCTURE BUILDER =================
+let gNodes = [];
+let gEdges = [];
+let gNodeSeq = 1, gEdgeSeq = 1;
+
+const EDGE_TYPES = [
+  {v:'SHAREHOLDER', label:'Is a Shareholder of', color:'#8891A3'},
+  {v:'CONTROL', label:'Controls', color:'#23272E'},
+  {v:'JOINT_CONTROL', label:'Jointly Controls', color:'#6B4E9E'},
+  {v:'SIG_INFLUENCE', label:'Has Significant Influence over', color:'#C97B3D'},
+  {v:'KMP', label:'Is Key Management Personnel of', color:'#3E8FA6'},
+  {v:'CLOSE_FAMILY', label:'Is Close Family Member of', color:'#8C5C7D'},
+  {v:'PEB', label:'Sponsors (employer of) benefit plan', color:'#7C9A5C'},
+  {v:'KMP_SERVICES', label:'Provides KMP Services to', color:'#B8892C'},
+];
+function edgeMeta(type){ return EDGE_TYPES.find(t=>t.v===type); }
+function nodeById(id){ return gNodes.find(x=>x.id===id); }
+function nodeName(id){ const n = nodeById(id); return n ? n.name : '?'; }
+
+function renderNodeTable(){
+  const tbody = document.querySelector('#nodeTable tbody');
+  tbody.innerHTML = '';
+  if(gNodes.length===0){ tbody.innerHTML = '<tr><td colspan="3" class="empty-note">No people or entities added yet.</td></tr>'; return; }
+  gNodes.forEach((n,i)=>{
+    const tr = document.createElement('tr');
+    const upDisabled = i===0 ? 'disabled' : '';
+    const downDisabled = i===gNodes.length-1 ? 'disabled' : '';
+    tr.innerHTML = `<td>${n.name}</td><td>${n.kind==='entity'?'Entity':'Person'}</td><td class="row-actions">
+      <button class="move-btn" data-id="${n.id}" data-dir="up" ${upDisabled} title="Move up / left in its layer">▲</button>
+      <button class="move-btn" data-id="${n.id}" data-dir="down" ${downDisabled} title="Move down / right in its layer">▼</button>
+      <button class="del-btn" data-id="${n.id}">✕</button>
+    </td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.del-btn').forEach(b=>b.addEventListener('click', ()=>{
+    const id = b.getAttribute('data-id');
+    gNodes = gNodes.filter(n=>n.id!==id);
+    gEdges = gEdges.filter(e=>e.from!==id && e.to!==id);
+    refreshAll();
+  }));
+  tbody.querySelectorAll('.move-btn').forEach(b=>b.addEventListener('click', ()=>{
+    const id = b.getAttribute('data-id');
+    const dir = b.getAttribute('data-dir');
+    const idx = gNodes.findIndex(n=>n.id===id);
+    const swapWith = dir==='up' ? idx-1 : idx+1;
+    if(swapWith < 0 || swapWith >= gNodes.length) return;
+    [gNodes[idx], gNodes[swapWith]] = [gNodes[swapWith], gNodes[idx]];
+    refreshAll();
+  }));
+}
+
+function renderSelects(){
+  ['edgeFrom','edgeTo'].forEach(selId=>{
+    const sel = document.getElementById(selId);
+    const cur = sel.value;
+    sel.innerHTML = gNodes.map(n=>`<option value="${n.id}">${n.name} (${n.kind==='entity'?'Entity':'Person'})</option>`).join('');
+    if(cur) sel.value = cur;
+  });
+  const reSel = document.getElementById('reSelect');
+  const curRE = reSel.value;
+  reSel.innerHTML = '<option value="">Select entity…</option>' + gNodes.filter(n=>n.kind==='entity').map(n=>`<option value="${n.id}">${n.name}</option>`).join('');
+  if(curRE) reSel.value = curRE;
+}
+
+function renderEdgeTable(){
+  const tbody = document.querySelector('#edgeTable tbody');
+  tbody.innerHTML = '';
+  if(gEdges.length===0){ tbody.innerHTML = '<tr><td colspan="2" class="empty-note">No relationships added yet.</td></tr>'; return; }
+  gEdges.forEach(e=>{
+    const meta = edgeMeta(e.type);
+    const pctTxt = e.pct ? ` · ${e.pct}%` : '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span style="color:${meta.color}; font-weight:600;">${nodeName(e.from)}</span> ${meta.label.toLowerCase()} <span style="font-weight:600;">${nodeName(e.to)}</span>${pctTxt}</td><td><button class="del-btn" data-id="${e.id}">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.del-btn').forEach(b=>b.addEventListener('click', ()=>{
+    gEdges = gEdges.filter(e=>e.id!==b.getAttribute('data-id'));
+    refreshAll();
+  }));
+}
+
+function refreshAll(){
+  renderNodeTable(); renderSelects(); renderEdgeTable(); renderGroupChart();
+  document.getElementById('resultsPanel').innerHTML = '<div class="results-head">Related Party Test Results</div><div class="results-empty">Add your structure, choose the reporting entity, and click Analyse.</div>';
+  lastAnalysis = null;
+}
+
+(function initEdgeTypeSelect(){
+  document.getElementById('edgeType').innerHTML = EDGE_TYPES.map(t=>`<option value="${t.v}">${t.label}</option>`).join('');
+})();
+
+document.getElementById('addNodeBtn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('nodeNameInput');
+  const name = nameInput.value.trim();
+  if(!name) return;
+  const kind = document.querySelector('input[name=nodeKind]:checked').value;
+  gNodes.push({id:'n'+(gNodeSeq++), name, kind});
+  nameInput.value='';
+  refreshAll();
+});
+document.getElementById('nodeNameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('addNodeBtn').click(); });
+
+document.getElementById('addEdgeBtn').addEventListener('click', ()=>{
+  const from = document.getElementById('edgeFrom').value;
+  const to = document.getElementById('edgeTo').value;
+  const type = document.getElementById('edgeType').value;
+  const pct = document.getElementById('edgePct').value;
+  if(!from || !to || from===to) return;
+  gEdges.push({id:'e'+(gEdgeSeq++), from, to, type, pct: pct ? Number(pct) : null});
+  document.getElementById('edgePct').value='';
+  refreshAll();
+});
+
+document.getElementById('resetBuilderBtn').addEventListener('click', ()=>{
+  if(!confirm('Clear the entire group structure?')) return;
+  gNodes=[]; gEdges=[]; refreshAll();
+});
+
+function labelWithBackdrop(svg, x, y, text, color, fontSize, weight){
+  const estW = text.length * (fontSize*0.62) + 10;
+  svg.appendChild(el('rect', {x:x-estW/2, y:y-fontSize*0.95, width:estW, height:fontSize*1.5, fill:'#F7F2E7', opacity:'0.97', rx:2, stroke:'#D8CDB2', 'stroke-width':0.5}));
+  const t = el('text', {x, y, 'text-anchor':'middle', 'font-family':'IBM Plex Mono, monospace', 'font-size':fontSize, fill:color, 'font-weight':weight||600});
+  t.textContent = text;
+  svg.appendChild(t);
+}
+
+function wrapLabel(text, maxChars){
+  const words = text.split(' ');
+  let lines = [''];
+  function pushChunk(chunk){
+    const cur = lines[lines.length-1];
+    const test = (cur + ' ' + chunk).trim();
+    if(test.length > maxChars && cur !== ''){ lines.push(chunk); }
+    else { lines[lines.length-1] = test; }
+  }
+  words.forEach(w=>{
+    if(w.length <= maxChars){ pushChunk(w); return; }
+    // Word alone is longer than one line — hyphenate it across lines instead of pushing
+    // the whole thing down (which was wasting space and forcing oversized boxes).
+    let remaining = w;
+    while(remaining.length > maxChars){
+      const cur = lines[lines.length-1];
+      const usedOnCur = cur.length + (cur ? 1 : 0);
+      let avail = maxChars - usedOnCur - 1; // reserve 1 char for the hyphen
+      if(avail < 2){ lines.push(''); avail = maxChars - 1; }
+      const piece = remaining.slice(0, avail) + '-';
+      const curNow = lines[lines.length-1];
+      lines[lines.length-1] = curNow ? curNow + ' ' + piece : piece;
+      remaining = remaining.slice(avail);
+      if(remaining.length > 0) lines.push('');
+    }
+    if(remaining) pushChunk(remaining);
+  });
+  return lines;
+}
+
+// Greedy collision-avoidance: nudges a proposed label position down/around until
+// it no longer overlaps a previously placed label or a node box, so text is never
+// stacked on top of other text.
+function findClearSpot(placedRects, x, y, w, h, maxPx){
+  maxPx = maxPx==null ? 60 : maxPx;
+  const pad = 4;
+  const overlaps = (testY) => placedRects.some(r =>
+    !(x + w/2 + pad < r.x - pad || x - w/2 - pad > r.x + r.w + pad || testY - h/2 - pad > r.y + r.h + pad || testY + h/2 + pad < r.y - pad)
+  );
+  let ny = y;
+  let tries = 0;
+  const step = h + 5;
+  const maxTries = Math.max(1, Math.floor(maxPx/step));
+  // Bounded to a handful of small nudges, capped to a pixel budget derived from the
+  // actual row gap in use — enough to dodge a neighboring label, never enough to drift
+  // into the next layer's row.
+  while(overlaps(ny) && tries < maxTries){
+    tries++;
+    ny = y + (tries % 2 === 0 ? -1 : 1) * Math.ceil(tries/2) * step;
+  }
+  return ny;
+}
+
+// Same collision test, but only ever moves UPWARD from the starting point — used for the
+// % labels so they stay above the entity box they belong to, never drift down past it.
+function findClearSpotUpward(placedRects, x, y, w, h, maxPx){
+  maxPx = maxPx==null ? 60 : maxPx;
+  const pad = 4;
+  const overlaps = (testY) => placedRects.some(r =>
+    !(x + w/2 + pad < r.x - pad || x - w/2 - pad > r.x + r.w + pad || testY - h/2 - pad > r.y + r.h + pad || testY + h/2 + pad < r.y - pad)
+  );
+  let ny = y;
+  let tries = 0;
+  const step = h + 4;
+  const maxTries = Math.max(1, Math.floor(maxPx/step));
+  // Same pixel-budget reasoning — a small nudge upward is fine, drifting all the way up
+  // into the row above is not.
+  while(overlaps(ny) && tries < maxTries){
+    tries++;
+    ny = y - tries*step;
+  }
+  return ny;
+}
+
+// Clips a line from a box's center toward (dx,dy) so it stops at the box edge
+// rather than the center — used so arrowheads land just outside the boxes.
+function clipToBox(cx, cy, dx, dy, halfW, halfH){
+  if(dx===0 && dy===0) return {x:cx, y:cy};
+  const scaleX = dx!==0 ? halfW/Math.abs(dx) : Infinity;
+  const scaleY = dy!==0 ? halfH/Math.abs(dy) : Infinity;
+  const scale = Math.min(scaleX, scaleY);
+  return {x:cx+dx*scale, y:cy+dy*scale};
+}
+
+function ensureArrowMarker(defs, color){
+  const markerId = 'arrow-' + color.replace('#','');
+  if(defs.querySelector('#'+markerId)) return markerId;
+  const marker = el('marker', {id:markerId, viewBox:'0 0 10 10', refX:'8.5', refY:'5', markerWidth:'6.5', markerHeight:'6.5', orient:'auto-start-reverse'});
+  const path = el('path', {d:'M0,0 L10,5 L0,10 z', fill:color});
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  return markerId;
+}
+
+function buildGroupChartSVG(svg, opts){
+  opts = opts || {};
+  const NODE_W = opts.NODE_W || 104, NODE_H_BASE = opts.NODE_H_BASE || 32;
+  const NODE_FONT = opts.NODE_FONT || 8.5, MAX_CHARS = opts.MAX_CHARS || 18;
+  const nodeGapX = opts.nodeGapX || 150, padTop = opts.padTop || 55;
+  const BASE_GAP = opts.BASE_GAP || 63, LABEL_STEP = opts.LABEL_STEP || 22;
+  const OTHER_FONT = opts.OTHER_FONT || 9, PCT_FONT = opts.PCT_FONT || 9.5;
+  const PCT_SPREAD = opts.PCT_SPREAD || 52;
+  const minW = opts.minW || 760;
+
+  svg.innerHTML='';
+  if(gNodes.length===0){
+    svg.setAttribute('viewBox','0 0 900 620');
+    svg.setAttribute('width','900'); svg.setAttribute('height','620');
+    const t = el('text', {x:450, y:300, 'text-anchor':'middle', fill:'#8891a3', 'font-family':'Source Serif 4, serif', 'font-style':'italic', 'font-size':16});
+    t.textContent = 'Your group chart will appear here as you add people and entities.';
+    svg.appendChild(t);
+    return;
+  }
+  const ownershipTypes = ['CONTROL','JOINT_CONTROL','SIG_INFLUENCE','SHAREHOLDER'];
+  const incoming = {}; gNodes.forEach(n=>incoming[n.id]=[]);
+  gEdges.forEach(e=>{ if(ownershipTypes.includes(e.type) && incoming[e.to]) incoming[e.to].push(e.from); });
+  const depth = {};
+  function getDepth(id, seen){
+    if(depth[id]!==undefined) return depth[id];
+    if(seen.has(id)) return 0;
+    seen.add(id);
+    const ins = incoming[id]||[];
+    if(ins.length===0){ depth[id]=0; return 0; }
+    const d = 1 + Math.max(...ins.map(p=>getDepth(p, new Set(seen))));
+    depth[id]=d; return d;
+  }
+  gNodes.forEach(n=>getDepth(n.id, new Set()));
+
+  const layers = {};
+  gNodes.forEach(n=>{ const d=depth[n.id]; (layers[d]=layers[d]||[]).push(n.id); });
+  const maxDepth = Math.max(...Object.keys(layers).map(Number));
+  const maxPerLayer = Math.max(...Object.values(layers).map(a=>a.length));
+  const W = Math.max(minW, (maxPerLayer+1)*nodeGapX);
+
+  // node box heights, computed up front (before row spacing) so tall, multi-line boxes get
+  // properly reserved room rather than a fixed single-line assumption.
+  const nodeLines = {}, nodeH = {};
+  gNodes.forEach(n=>{
+    const lines = wrapLabel(n.name, MAX_CHARS).slice(0,3);
+    nodeLines[n.id] = lines;
+    nodeH[n.id] = NODE_H_BASE + (lines.length-1)*12;
+  });
+  function maxHeightInLayer(ids){ return Math.max(NODE_H_BASE, ...ids.map(id=>nodeH[id])); }
+
+  // How many distinct non-ownership relationship labels (close family / KMP / benefit plan /
+  // KMP services) sit stacked below a given node — used to size the gap after its layer.
+  const otherTypesByFrom = {};
+  gEdges.forEach(e=>{
+    if(ownershipTypes.includes(e.type)) return;
+    const arr = otherTypesByFrom[e.from] = otherTypesByFrom[e.from] || [];
+    if(!arr.includes(e.type)) arr.push(e.type);
+  });
+  function labelCountFor(id){ return Math.min(4, (otherTypesByFrom[id]||[]).length); }
+
+  // The gap between two layers is only as big as it needs to be: half the old fixed gap when
+  // nothing but an ownership arrow (with its %) runs through it, growing per stacked label
+  // beneath it, up to the worst case of all 4 possible non-ownership labels. Row centers are
+  // spaced using each row's own tallest box (not a fixed height), so a 2-3 line name never
+  // encroaches on the gap reserved for the row below it.
+  const layerHeights = [];
+  for(let d=0; d<=maxDepth; d++) layerHeights[d] = maxHeightInLayer(layers[d]||[]);
+
+  const layerY = [];
+  let cursorY = padTop + layerHeights[0]/2;
+  for(let d=0; d<=maxDepth; d++){
+    layerY[d] = cursorY;
+    const idsInLayer = layers[d]||[];
+    const maxLabels = Math.max(0, ...idsInLayer.map(labelCountFor));
+    const gap = BASE_GAP + maxLabels*LABEL_STEP;
+    if(d < maxDepth) cursorY += layerHeights[d]/2 + gap + layerHeights[d+1]/2;
+  }
+  const bottomIds = layers[maxDepth]||[];
+  const bottomMaxLabels = Math.max(0, ...bottomIds.map(labelCountFor));
+  const H = layerY[maxDepth] + layerHeights[maxDepth]/2 + BASE_GAP + bottomMaxLabels*LABEL_STEP + 10;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+
+  const defs = el('defs', {});
+  svg.appendChild(defs);
+
+  const pos = {};
+  for(let d=0; d<=maxDepth; d++){
+    const ids = (layers[d]||[]).slice();
+    if(d>0){
+      // Barycenter ordering: place each node near the average x of the parent(s) that
+      // own/control it, so a branch stays visually grouped under its own parent instead
+      // of being interleaved with an unrelated branch that happens to share the same layer.
+      ids.sort((a,b)=>{
+        const pa = incoming[a]||[], pb = incoming[b]||[];
+        const avgA = pa.length ? pa.reduce((s,p)=>s+(pos[p]?pos[p].x:0),0)/pa.length : Number.MAX_SAFE_INTEGER;
+        const avgB = pb.length ? pb.reduce((s,p)=>s+(pos[p]?pos[p].x:0),0)/pb.length : Number.MAX_SAFE_INTEGER;
+        return avgA-avgB;
+      });
+    }
+    const count = ids.length;
+    ids.forEach((id,i)=>{
+      pos[id] = { x: W*(i+1)/(count+1), y: layerY[d] };
+    });
+  }
+
+  const ownershipEdges = gEdges.filter(e=>ownershipTypes.includes(e.type));
+  const otherEdges = gEdges.filter(e=>!ownershipTypes.includes(e.type));
+
+  // 1) ownership lines only — no text yet, so nothing can bury a label under a shape
+  // drawn later. These go straight from the owner's box to the owned entity's box.
+  ownershipEdges.forEach(e=>{
+    const meta = edgeMeta(e.type);
+    const p1 = pos[e.from], p2 = pos[e.to];
+    if(!p1||!p2) return;
+    const dx = p2.x-p1.x, dy = p2.y-p1.y;
+    const start = clipToBox(p1.x,p1.y, dx,dy, NODE_W/2, nodeH[e.from]/2);
+    const end = clipToBox(p2.x,p2.y, -dx,-dy, NODE_W/2, nodeH[e.to]/2);
+    const markerId = ensureArrowMarker(defs, meta.color);
+    svg.appendChild(el('line',{x1:start.x,y1:start.y,x2:end.x,y2:end.y,stroke:meta.color,'stroke-width':2,'marker-end':`url(#${markerId})`}));
+  });
+
+  // 2) node boxes + names
+  gNodes.forEach(n=>{
+    const p = pos[n.id]; if(!p) return;
+    const isPerson = n.kind==='person';
+    const lines = nodeLines[n.id];
+    const h = nodeH[n.id];
+    svg.appendChild(el('rect',{x:p.x-NODE_W/2,y:p.y-h/2,width:NODE_W,height:h,rx:isPerson?h/2:5,fill:isPerson?'#fff':'#1B2A45',stroke:isPerson?'#6B4E9E':'#B8892C','stroke-width':1.5}));
+    const startY = p.y - (lines.length-1)*5.5 + 3;
+    lines.forEach((ln, li)=>{
+      const label = el('text',{x:p.x,y:startY+li*11,'text-anchor':'middle','font-family':'IBM Plex Sans, sans-serif','font-size':NODE_FONT,'font-weight':600,fill:isPerson?'#1B2A45':'#F7F2E7'});
+      label.textContent = ln;
+      svg.appendChild(label);
+    });
+  });
+
+  // 3) non-ownership relationship labels (KMP / close family / benefit plan / KMP
+  // services) are stacked vertically below the box of whoever is DOING the thing —
+  // one under another, never side-by-side. If the same person/entity does the SAME
+  // thing to several targets (e.g. is KMP of two different entities), that's ONE
+  // label with several arrows fanning out from it, not a repeated label per target.
+  const placedRects = [];
+  gNodes.forEach(n=>{
+    const p = pos[n.id]; if(!p) return;
+    const h = nodeH[n.id];
+    placedRects.push({x:p.x-NODE_W/2, y:p.y-h/2, w:NODE_W, h:h});
+  });
+
+  const groupsByFrom = {}; // fromId -> [{type, edges:[...]}]
+  otherEdges.forEach(e=>{
+    const arr = groupsByFrom[e.from] = groupsByFrom[e.from] || [];
+    let grp = arr.find(g=>g.type===e.type);
+    if(!grp){ grp = {type:e.type, edges:[]}; arr.push(grp); }
+    grp.edges.push(e);
+  });
+  const otherLabelPos = {}; // "fromId|type" -> {x,y,w,h,color,text,edges}
+  Object.keys(groupsByFrom).forEach(fromId=>{
+    const groups = groupsByFrom[fromId];
+    const p1 = pos[fromId];
+    if(!p1) return;
+    groups.forEach((grp,i)=>{
+      const meta = edgeMeta(grp.type);
+      const estW = meta.label.length * (OTHER_FONT*0.6) + 10;
+      const estH = OTHER_FONT*1.6;
+      const lx = p1.x;
+      const ly = p1.y + nodeH[fromId]/2 + 17 + i*(estH+3);
+      const ny = findClearSpot(placedRects, lx, ly, estW, estH, BASE_GAP*0.55);
+      placedRects.push({x:lx-estW/2, y:ny-OTHER_FONT*0.95, w:estW, h:estH});
+      otherLabelPos[fromId+'|'+grp.type] = {x:lx, y:ny, w:estW, h:estH, color:meta.color, text:meta.label, edges:grp.edges};
+    });
+  });
+
+  // arrows start at the shared label bubble's edge and fan out to every applicable target box
+  Object.keys(otherLabelPos).forEach(key=>{
+    const lp = otherLabelPos[key];
+    lp.edges.forEach(e=>{
+      const p2 = pos[e.to];
+      if(!p2) return;
+      const dx = p2.x-lp.x, dy = p2.y-lp.y;
+      const start = clipToBox(lp.x, lp.y, dx, dy, lp.w/2, lp.h/2);
+      const end = clipToBox(p2.x, p2.y, -dx, -dy, NODE_W/2, nodeH[e.to]/2);
+      const markerId = ensureArrowMarker(defs, lp.color);
+      svg.appendChild(el('line',{x1:start.x,y1:start.y,x2:end.x,y2:end.y,stroke:lp.color,'stroke-width':1.5,'stroke-dasharray':'4 3', opacity:0.85, 'marker-end':`url(#${markerId})`}));
+    });
+  });
+
+  // labels drawn on top of their arrows' starting points, so each arrow visually emerges from its label
+  Object.keys(otherLabelPos).forEach(key=>{
+    const lp = otherLabelPos[key];
+    labelWithBackdrop(svg, lp.x, lp.y, lp.text, lp.color, OTHER_FONT, 600);
+  });
+
+  // 4) % labels sit just above the child entity's box (the one being owned/controlled),
+  // spread out horizontally when several owners point at the same entity. These only ever
+  // nudge upward if crowded, so they can never end up pushed down past the box's own top edge.
+  function placeLabel(mx, my, text, color, fontSize, weight){
+    const estW = text.length * (fontSize*0.62) + 10;
+    const estH = fontSize*1.5;
+    const ny = findClearSpotUpward(placedRects, mx, my, estW, estH, BASE_GAP*0.55);
+    placedRects.push({x:mx-estW/2, y:ny-fontSize*0.95, w:estW, h:estH});
+    labelWithBackdrop(svg, mx, ny, text, color, fontSize, weight);
+  }
+  const pctByTarget = {};
+  ownershipEdges.filter(e=>e.pct).forEach(e=>{ (pctByTarget[e.to]=pctByTarget[e.to]||[]).push(e); });
+  Object.keys(pctByTarget).forEach(targetId=>{
+    const p2 = pos[targetId];
+    if(!p2) return;
+    // Sort by the source's own x-position so the left-to-right order of the % labels
+    // matches the left-to-right order the arrows actually arrive from.
+    const list = pctByTarget[targetId].slice().sort((a,b)=>{
+      const pa = pos[a.from], pb = pos[b.from];
+      return (pa?pa.x:0) - (pb?pb.x:0);
+    });
+    const n = list.length;
+    list.forEach((e,i)=>{
+      const meta = edgeMeta(e.type);
+      const lx = p2.x + (i - (n-1)/2) * PCT_SPREAD;
+      const ly = p2.y - nodeH[targetId]/2 - 17;
+      placeLabel(lx, ly, e.pct+'%', meta.color, PCT_FONT);
+    });
+  });
+}
+
+function renderGroupChart(){
+  buildGroupChartSVG(document.getElementById('groupChart'));
+}
+
+// A more compact layout profile used only for the PDF export, so a large structure has a
+// better chance of staying readable when the whole chart is scaled to fit one page.
+function buildChartSvgForExport(){
+  const svg = document.createElementNS(svgNS, 'svg');
+  buildGroupChartSVG(svg, {
+    NODE_W: 88, NODE_H_BASE: 26, NODE_FONT: 7.5, MAX_CHARS: 17,
+    nodeGapX: 118, padTop: 42, BASE_GAP: 48, LABEL_STEP: 17,
+    OTHER_FONT: 7.5, PCT_FONT: 8, PCT_SPREAD: 58, minW: 600
+  });
+  return svg;
+}
+
+function getEffectiveEdges(){
+  // Turns 'Shareholder' links (with a %) into working-assumption CONTROL / JOINT_CONTROL /
+  // SIG_INFLUENCE edges for analysis purposes only. The relationship table and chart still
+  // show the original 'Shareholder' label — this derivation never overwrites user input.
+  const byTarget = {};
+  gEdges.forEach(e=>{ if(e.type==='SHAREHOLDER') (byTarget[e.to]=byTarget[e.to]||[]).push(e); });
+
+  const derived = gEdges.filter(e=>e.type!=='SHAREHOLDER').slice();
+  Object.keys(byTarget).forEach(targetId=>{
+    const holders = byTarget[targetId];
+    const fiftyFifty = holders.length===2 && holders.every(h=>h.pct===50);
+    holders.forEach(h=>{
+      if(h.pct==null) return; // no % given — informational only, no assumption made
+      if(fiftyFifty){ derived.push({id:h.id+'_d', from:h.from, to:h.to, type:'JOINT_CONTROL', pct:h.pct, assumed:true}); }
+      else if(h.pct>50){ derived.push({id:h.id+'_d', from:h.from, to:h.to, type:'CONTROL', pct:h.pct, assumed:true}); }
+      else if(h.pct>=20){ derived.push({id:h.id+'_d', from:h.from, to:h.to, type:'SIG_INFLUENCE', pct:h.pct, assumed:true}); }
+      // below 20% -> no automatic relationship assumed
+    });
+  });
+  return derived;
+}
+
+function computeGroup(reId, edges){
+  edges = edges || gEdges;
+  const visited = new Set([reId]);
+  const queue = [reId];
+  while(queue.length){
+    const cur = queue.shift();
+    edges.forEach(e=>{
+      if(e.type!=='CONTROL') return;
+      let other=null;
+      if(e.from===cur) other=e.to; else if(e.to===cur) other=e.from;
+      if(other){
+        const node = nodeById(other);
+        if(node && node.kind==='entity' && !visited.has(other)){ visited.add(other); queue.push(other); }
+      }
+    });
+  }
+  return visited;
+}
+function ancestorEntities(reId, edges){
+  // Every entity that controls or jointly controls reId, directly or through any number of
+  // intermediate layers (grandparent, great-grandparent, ...). Used both to find "the parent"
+  // for KMP/KMP-services tests, and to let indirect controllers reach down through the chain.
+  edges = edges || gEdges;
+  const visited = new Set();
+  const queue=[reId];
+  while(queue.length){
+    const cur = queue.shift();
+    edges.forEach(e=>{
+      if((e.type==='CONTROL'||e.type==='JOINT_CONTROL') && e.to===cur){
+        const node = nodeById(e.from);
+        if(node && node.kind==='entity' && !visited.has(e.from)){ visited.add(e.from); queue.push(e.from); }
+      }
+    });
+  }
+  return visited;
+}
+
+function analyze(reId){
+  const edges = getEffectiveEdges();
+  const resultsMap = {};
+  function add(nodeId, tag, reason){
+    if(!nodeId || nodeId===reId) return;
+    resultsMap[nodeId] = resultsMap[nodeId] || [];
+    if(!resultsMap[nodeId].some(r=>r.tag===tag)) resultsMap[nodeId].push({tag, reason});
+  }
+
+  const group = computeGroup(reId, edges);
+  const parents = ancestorEntities(reId, edges); // every controlling entity above RE, any number of layers up
+
+  // 9(a) tests — a person controlling ANY entity that itself controls RE (however many layers
+  // up the chain) controls RE indirectly, so 9(a)(i) checks reId AND every entity in `parents`.
+  const controlTargets = new Set([reId, ...parents]);
+  const a1 = new Set(), a2 = new Set(), a3 = new Set();
+  edges.forEach(e=>{
+    const p = nodeById(e.from);
+    if(!p || p.kind!=='person') return;
+    if((e.type==='CONTROL'||e.type==='JOINT_CONTROL') && controlTargets.has(e.to)) a1.add(e.from);
+    if(e.type==='SIG_INFLUENCE' && e.to===reId) a2.add(e.from);
+    if(e.type==='KMP' && (e.to===reId || parents.has(e.to))) a3.add(e.from);
+  });
+  a1.forEach(p=>add(p,'9(a)(i)','Controls or jointly controls the reporting entity, directly or through the ownership chain'));
+  a2.forEach(p=>add(p,'9(a)(ii)','Has significant influence over the reporting entity'));
+  a3.forEach(p=>add(p,'9(a)(iii)','Key management personnel of the reporting entity or of a parent of the reporting entity'));
+
+  const allA = new Set([...a1,...a2,...a3]);
+
+  edges.forEach(e=>{
+    if(e.type!=='CLOSE_FAMILY') return;
+    if(allA.has(e.from) && nodeById(e.to) && nodeById(e.to).kind==='person') add(e.to,'9(a)','Close family member of a person related under 9(a)');
+    if(allA.has(e.to) && nodeById(e.from) && nodeById(e.from).kind==='person') add(e.from,'9(a)','Close family member of a person related under 9(a)');
+  });
+
+  group.forEach(id=>{ if(id!==reId) add(id,'9(b)(i)','Member of the same group as the reporting entity'); });
+
+  edges.forEach(e=>{
+    if((e.type==='SIG_INFLUENCE'||e.type==='JOINT_CONTROL') && nodeById(e.from) && nodeById(e.to) && nodeById(e.from).kind==='entity' && nodeById(e.to).kind==='entity'){
+      if(group.has(e.from) && !group.has(e.to)) add(e.to,'9(b)(ii)','Associate or joint venture of the reporting entity or a group member');
+      if(group.has(e.to) && !group.has(e.from)) add(e.from,'9(b)(ii)','Associate or joint venture of the reporting entity or a group member');
+    }
+  });
+
+  edges.forEach(e=>{
+    if(e.type==='JOINT_CONTROL' && e.to===reId){
+      const P = e.from;
+      edges.forEach(e2=>{
+        if(e2.from===P && e2.type==='JOINT_CONTROL' && e2.to!==reId) add(e2.to,'9(b)(iii)','Joint venture of the same third party as the reporting entity');
+      });
+    }
+  });
+
+  edges.forEach(e=>{
+    if(e.to===reId && (e.type==='JOINT_CONTROL'||e.type==='SIG_INFLUENCE')){
+      const P = e.from;
+      const opp = e.type==='JOINT_CONTROL' ? 'SIG_INFLUENCE' : 'JOINT_CONTROL';
+      edges.forEach(e2=>{
+        if(e2.from===P && e2.type===opp && e2.to!==reId) add(e2.to,'9(b)(iv)','One is a joint venture, the other an associate, of the same third entity');
+      });
+    }
+  });
+
+  edges.forEach(e=>{
+    if(e.type==='PEB' && e.from===reId) add(e.to,'9(b)(v)','Post-employment benefit plan sponsored by the reporting entity');
+    if(e.type==='PEB' && e.to===reId) add(e.from,'9(b)(v)',"Sponsoring employer of the reporting entity's benefit plan");
+  });
+
+  // 9(b)(vi) — entities controlled/jointly controlled by ANY person related under 9(a), including
+  // persons who only reach RE indirectly through the ownership chain (a1, expanded above).
+  edges.forEach(e=>{
+    if((e.type==='CONTROL'||e.type==='JOINT_CONTROL') && allA.has(e.from) && nodeById(e.to) && nodeById(e.to).kind==='entity' && e.to!==reId){
+      add(e.to,'9(b)(vi)','Controlled or jointly controlled by a person related to the reporting entity under 9(a)');
+    }
+  });
+
+  // 9(b)(vii) — restricted to persons identified under 9(a)(i) specifically (control/joint control).
+  a1.forEach(p=>{
+    edges.forEach(e=>{
+      if(e.from===p && e.type==='SIG_INFLUENCE' && nodeById(e.to) && nodeById(e.to).kind==='entity' && e.to!==reId){
+        add(e.to,'9(b)(vii)','Significant influence held over it by a person who controls the reporting entity');
+      }
+      if(e.from===p && nodeById(e.to) && nodeById(e.to).kind==='entity' && e.to!==reId){
+        if(e.type==='KMP'){
+          add(e.to,'9(b)(vii)','KMP role held by a person who controls the reporting entity');
+        }
+      }
+      // KMP of that entity's own parent, by the same controlling person
+      if(e.type==='CONTROL' || e.type==='JOINT_CONTROL'){
+        // no-op placeholder — direct case already covered above; deeper nesting flagged via disclaimer
+      }
+    });
+  });
+
+  edges.forEach(e=>{
+    if(e.type==='KMP_SERVICES' && (e.to===reId || parents.has(e.to))){
+      add(e.from,'9(b)(viii)','Provides key management personnel services to the reporting entity or its parent');
+      const providerGroup = computeGroup(e.from, edges);
+      providerGroup.forEach(g=>{ if(g!==e.from) add(g,'9(b)(viii)','Member of the group of the KMP-services provider'); });
+    }
+  });
+
+  return resultsMap;
+}
+
+function paraColor(tag){
+  if(tag.indexOf('9(a)')===0) return '#6B4E9E';
+  const map = {'9(b)(i)':'#23272E','9(b)(ii)':'#C97B3D','9(b)(iii)':'#A6403A','9(b)(iv)':'#3F6B4A','9(b)(v)':'#7C9A5C','9(b)(vi)':'#C9A227','9(b)(vii)':'#3E8FA6','9(b)(viii)':'#8C5C7D'};
+  return map[tag] || '#1B2A45';
+}
+
+let lastAnalysis = null;
+document.getElementById('analyzeBtn').addEventListener('click', ()=>{
+  requireLeadCapture(function(){
+  const reId = document.getElementById('reSelect').value;
+  const panel = document.getElementById('resultsPanel');
+  if(!reId){
+    panel.innerHTML = '<div class="results-head">Related Party Test Results</div><div class="results-empty">Select a reporting entity first.</div>';
+    return;
+  }
+  const resultsMap = analyze(reId);
+  const reName = nodeName(reId);
+  lastAnalysis = {reId, reName, resultsMap};
+  const ids = Object.keys(resultsMap);
+  if(ids.length===0){
+    panel.innerHTML = `<div class="results-head">Related Party Test Results — ${reName}</div><div class="results-empty">No related parties found in this structure for ${reName}.</div>`;
+    return;
+  }
+  // Group by (IAS 24 paragraph + basis) so parties that share the same reason appear
+  // together in one row, each on its own line, instead of one repeated row per party.
+  const grouped = {};
+  ids.forEach(id=>{
+    const node = nodeById(id);
+    resultsMap[id].forEach(r=>{
+      const key = r.tag + '|' + r.reason;
+      grouped[key] = grouped[key] || {tag:r.tag, reason:r.reason, parties:[]};
+      grouped[key].parties.push({name:node.name, kind:node.kind});
+    });
+  });
+  let rows = '';
+  Object.values(grouped).forEach(g=>{
+    const namesHtml = g.parties.map(p=>`<div>${p.name} <span style="color:var(--ink-soft);font-weight:400;">(${p.kind==='entity'?'Entity':'Person'})</span></div>`).join('');
+    rows += `<div class="result-row">
+      <div class="rp-tag" style="color:${paraColor(g.tag)}">${g.tag}</div>
+      <div class="rp-name">${namesHtml}</div>
+      <div class="rp-reason">${g.reason}</div>
+    </div>`;
+  });
+  panel.innerHTML = `<div class="results-head">Related Party Test Results — ${reName}</div>${rows}`;
+  });
+});
+
+document.getElementById('downloadPdfBtn').addEventListener('click', async ()=>{
+  if(gNodes.length===0){ alert('Add a group structure first.'); return; }
+  if(!lastAnalysis){ alert('Click Analyse first, so the results can be included.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
+
+  // Rendered at a higher scale and exported as PNG for crisp text and lines. A single-page
+  // compact chart at this resolution lands in the low single-digit MB range — well under
+  // the old multi-page tiled PNG approach (~25MB) but far sharper than the earlier
+  // over-compressed JPEG pass.
+  async function svgToImage(svgEl, scale){
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgData], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    await new Promise((resolve,reject)=>{ img.onload=resolve; img.onerror=reject; img.src=url; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width*scale; canvas.height = img.height*scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#F7F2E7'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+    return { dataUrl: canvas.toDataURL('image/png'), ratio: canvas.width/canvas.height };
+  }
+
+  // Builds a version of the wheel for the PDF only — the live on-screen wheel is untouched.
+  // A standalone exported SVG has no access to the page's stylesheet, so the hub text and
+  // outer-circle text need their styling inlined directly for the PDF snapshot.
+  function prepareWheelForExport(){
+    const clone = document.getElementById('wheel').cloneNode(true);
+    clone.querySelectorAll('.hub-label').forEach(t=>{
+      t.setAttribute('fill', '#FFFFFF');
+      t.setAttribute('font-family', 'Source Serif 4, serif');
+      t.setAttribute('font-weight', '700');
+      t.setAttribute('font-size', '20');
+    });
+    clone.querySelectorAll('.hub-sub').forEach(t=>{
+      t.setAttribute('fill', '#FFFFFF');
+      t.setAttribute('opacity', '0.7');
+      t.setAttribute('font-family', 'IBM Plex Mono, monospace');
+      t.setAttribute('font-size', '10.5');
+    });
+    clone.querySelectorAll('.node-tag').forEach(t=>{
+      t.setAttribute('font-family', 'IBM Plex Mono, monospace');
+      t.setAttribute('font-weight', '600');
+      t.setAttribute('font-size', '10.5'); // 1pt smaller than the on-screen wheel
+    });
+    clone.querySelectorAll('.node-label').forEach(t=>{
+      t.setAttribute('font-family', 'IBM Plex Sans, sans-serif');
+      t.setAttribute('font-weight', '600');
+      t.setAttribute('font-size', '11.5'); // 1pt smaller than the on-screen wheel
+      if(!t.getAttribute('fill')) t.setAttribute('fill', '#1B2A45');
+    });
+    return clone;
+  }
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  // --- Page 1: the wheel, styled like the web page's header ---
+  const wheelImg = await svgToImage(prepareWheelForExport(), 2.2);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11);
+  doc.setTextColor(142,106,30);
+  doc.text('I A S   2 4   ·   R E L A T E D   P A R T Y   D I S C L O S U R E S', 36, 40);
+  doc.setFont('helvetica','bold'); doc.setFontSize(24);
+  doc.setTextColor(27,42,69);
+  const titlePlain = 'The Related Party ';
+  doc.text(titlePlain, 36, 68);
+  const plainW = doc.getTextWidth(titlePlain);
+  doc.setFont('helvetica','bolditalic'); doc.setTextColor(142,106,30);
+  doc.text('Wheel', 36+plainW, 68);
+
+  let whW = pageW - 140, whH = whW/wheelImg.ratio;
+  const whMaxH = pageH - 170;
+  if(whH > whMaxH){ whH = whMaxH; whW = whH*wheelImg.ratio; }
+  doc.addImage(wheelImg.dataUrl, 'PNG', (pageW-whW)/2, 96, whW, whH);
+
+  // --- Page 2: the group structure chart, always on one page. A separate, more compact
+  // layout (smaller boxes/fonts/spacing) is built just for this export, then the whole
+  // thing is scaled to fill the page edge-to-edge — a large structure prints smaller
+  // rather than spilling across several pages.
+  doc.addPage('a4','landscape');
+  const marginX = 14, marginTop = 72, marginBottom = 56;
+  const usableWpt = pageW - marginX*2;
+  const usableHpt = pageH - marginTop - marginBottom;
+  const chartImg = await svgToImage(buildChartSvgForExport(), 2.2);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(27,42,69);
+  doc.text('IAS 24 — Group Structure', 36, 36);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90,100,120);
+  doc.text('Reporting entity: ' + lastAnalysis.reName, 36, 52);
+
+  let drawW = usableWpt, drawH = drawW/chartImg.ratio;
+  if(drawH > usableHpt){ drawH = usableHpt; drawW = drawH*chartImg.ratio; }
+  doc.addImage(chartImg.dataUrl, 'PNG', marginX + (usableWpt-drawW)/2, marginTop, drawW, drawH);
+
+  // --- Results page: results table ---
+  doc.addPage('a4','portrait');
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(27,42,69);
+  doc.text('IAS 24 — Related Party Test Results', 36, 40);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90,100,120);
+  doc.text('Reporting entity: ' + lastAnalysis.reName, 36, 58);
+
+  const groupedForPdf = {};
+  Object.keys(lastAnalysis.resultsMap).forEach(id=>{
+    const node = nodeById(id);
+    lastAnalysis.resultsMap[id].forEach(r=>{
+      const key = r.tag + '|' + r.reason;
+      groupedForPdf[key] = groupedForPdf[key] || {tag:r.tag, reason:r.reason, names:[]};
+      groupedForPdf[key].names.push(node.name + ' (' + (node.kind==='entity'?'Entity':'Person') + ')');
+    });
+  });
+  const body = Object.values(groupedForPdf).map(g=>[g.tag, g.names.join('\n'), g.reason]);
+  if(body.length===0) body.push(['—','No related parties identified','—']);
+
+  doc.autoTable({
+    startY: 76,
+    head: [['IAS 24 Para','Related Party','Basis']],
+    body,
+    styles:{ font:'helvetica', fontSize:9, textColor:[27,42,69], cellPadding:6, valign:'top' },
+    headStyles:{ fillColor:[27,42,69], textColor:[247,242,231] },
+    alternateRowStyles:{ fillColor:[247,242,231] },
+    columnStyles:{0:{cellWidth:70},1:{cellWidth:170}},
+    margin:{left:36,right:36}
+  });
+
+  // --- Final page: the exact inputs the structure was built from, in the same wording
+  // used in "2 · Connect them" on the web page ---
+  doc.addPage('a4','portrait');
+  doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(27,42,69);
+  doc.text('IAS 24 — Structure & Relationships as Entered', 36, 40);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90,100,120);
+  doc.text('Reporting entity: ' + lastAnalysis.reName, 36, 58);
+  doc.setFontSize(9); doc.setTextColor(140,140,140);
+  doc.text('The chart and results above were generated from the following people, entities, and relationships as entered.', 36, 72);
+
+  const peopleBody = gNodes.map(n=>[n.name, n.kind==='entity' ? 'Entity' : 'Person']);
+  doc.autoTable({
+    startY: 88,
+    head: [['Name','Type']],
+    body: peopleBody,
+    styles:{ font:'helvetica', fontSize:9, textColor:[27,42,69], cellPadding:6 },
+    headStyles:{ fillColor:[27,42,69], textColor:[247,242,231] },
+    alternateRowStyles:{ fillColor:[247,242,231] },
+    margin:{left:36,right:36}
+  });
+
+  const relBody = gEdges.map(e=>{
+    const meta = edgeMeta(e.type);
+    const pctTxt = e.pct ? ' · ' + e.pct + '%' : '';
+    return [nodeName(e.from) + ' ' + meta.label.toLowerCase() + ' ' + nodeName(e.to) + pctTxt];
+  });
+  if(relBody.length===0) relBody.push(['No relationships were added.']);
+  doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 24,
+    head: [['Relationship']],
+    body: relBody,
+    styles:{ font:'helvetica', fontSize:9, textColor:[27,42,69], cellPadding:6 },
+    headStyles:{ fillColor:[27,42,69], textColor:[247,242,231] },
+    alternateRowStyles:{ fillColor:[247,242,231] },
+    margin:{left:36,right:36}
+  });
+
+  // --- Footer (disclaimer + hyperlinked tool URL) on every page ---
+  const totalPages = doc.internal.getNumberOfPages();
+  for(let p=1; p<=totalPages; p++){
+    doc.setPage(p);
+    const fh = doc.internal.pageSize.getHeight();
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(140,140,140);
+    doc.text('Practical aid only — verify against IAS 24 and professional judgement before relying on this output.', 36, fh-30);
+    doc.setTextColor(142,106,30);
+    doc.textWithLink('Access this related party tool at https://rp.nkr.ae', 36, fh-18, {url:'https://rp.nkr.ae'});
+  }
+
+  doc.save('IAS24-related-party-structure.pdf');
+});
+
+refreshAll();
+</script>
+</body>
+</html>
